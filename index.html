@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<title>Quản lý kho — Điện Tử Thu Hiền</title>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<style>
+  :root{
+    --ink:#0f2027;
+    --panel:#16333a;
+    --panel-2:#1c3f47;
+    --line:rgba(255,231,196,0.12);
+    --paper:#f4ecdd;
+    --amber:#e8a13c;
+    --green:#5fae74;
+    --red:#d6634a;
+    --blue:#6fa8d6;
+    --mono:"IBM Plex Mono","SFMono-Regular",Consolas,monospace;
+    --sans:"IBM Plex Sans","Segoe UI",sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:radial-gradient(1200px 600px at 10% -10%, #1d4a52 0%, transparent 60%), var(--ink);
+    color:var(--paper);font-family:var(--sans);min-height:100vh;
+    padding:18px 14px 40px;
+  }
+  .wrap{max-width:480px;margin:0 auto;}
+
+  header{display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--line);padding-bottom:14px;margin-bottom:18px;}
+  .backbtn{background:var(--panel);border:1px solid var(--line);color:var(--paper);border-radius:9px;padding:9px 12px;font-size:15px;cursor:pointer;flex-shrink:0;}
+  .backbtn:active{transform:scale(.95);}
+  header .titles{flex:1;}
+  header .brand{font-family:var(--mono);letter-spacing:.08em;font-size:11px;color:var(--amber);text-transform:uppercase;}
+  header h1{font-size:18px;margin:2px 0 0;font-weight:600;letter-spacing:-.01em;}
+  .tag{font-family:var(--mono);font-size:11px;border:1px solid var(--line);padding:3px 8px;border-radius:20px;white-space:nowrap;flex-shrink:0;}
+
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:14px;}
+  .card h2{font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:#a9c2c4;margin:0 0 10px;font-weight:600;}
+
+  /* ---- Trang chủ: lưới nút to ---- */
+  .menu-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .menu-btn{
+    background:var(--panel);border:1px solid var(--line);border-radius:16px;
+    padding:22px 14px;display:flex;flex-direction:column;align-items:flex-start;gap:10px;
+    cursor:pointer;text-align:left;color:var(--paper);transition:transform .08s ease, border-color .15s ease;
+  }
+  .menu-btn:active{transform:scale(.96);}
+  .menu-btn .ic{font-size:28px;}
+  .menu-btn .t{font-size:14.5px;font-weight:700;}
+  .menu-btn .d{font-size:11.5px;color:#a9c2c4;line-height:1.4;}
+  .menu-btn.lookup{border-color:rgba(111,168,214,.4);}
+  .menu-btn.xuat{border-color:rgba(214,99,74,.4);}
+  .menu-btn.nhap{border-color:rgba(95,174,116,.4);}
+  .menu-btn.stock{border-color:rgba(232,161,60,.4);}
+  .menu-btn.expense{border-color:rgba(198,124,214,.4);}
+
+  #reader{width:100%;border-radius:10px;overflow:hidden;background:#000;border:1px solid var(--line);min-height:200px;}
+  #reader video{border-radius:10px;}
+
+  .scanbar{display:flex;gap:8px;margin-top:12px;}
+  button{font-family:var(--sans);font-weight:600;font-size:14px;border:none;border-radius:9px;padding:11px 14px;cursor:pointer;transition:transform .08s ease, opacity .15s ease;}
+  button:active{transform:scale(.97);}
+  .btn-amber{background:var(--amber);color:#1a1206;}
+  .btn-ghost{background:transparent;color:var(--paper);border:1px solid var(--line);}
+  .btn-block{width:100%;}
+  .btn-danger{background:var(--red);color:#fff;}
+  .btn-green{background:var(--green);color:#0b2113;}
+  button:disabled{opacity:.4;cursor:not-allowed;}
+
+  input[type=text],input[type=number]{width:100%;background:var(--panel-2);border:1px solid var(--line);border-radius:9px;color:var(--paper);padding:11px 12px;font-family:var(--mono);font-size:15px;}
+  input:read-only{opacity:.65;}
+  input::placeholder{color:#6f8f92;}
+  label{font-size:11px;color:#a9c2c4;text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:6px;}
+  .field{margin-bottom:12px;}
+  .row2{display:flex;gap:10px;}
+  .row2 .field{flex:1;}
+
+  .hidden{display:none !important;}
+  .screen{display:none;}
+  .screen.active{display:block;}
+
+  .product .name{font-size:17px;font-weight:700;margin:0 0 2px;}
+  .product .meta{font-family:var(--mono);font-size:12.5px;color:#a9c2c4;line-height:1.7;}
+  .product .meta b{color:var(--paper);}
+  .stock-pill{display:inline-block;margin-top:8px;font-family:var(--mono);font-size:12px;background:var(--panel-2);border:1px solid var(--line);padding:3px 10px;border-radius:20px;}
+  .stock-pill.low{border-color:var(--red);color:#f0a58f;}
+
+  .badge{display:inline-block;font-family:var(--mono);font-size:11px;padding:3px 9px;border-radius:20px;margin-bottom:10px;}
+  .badge.xuat{background:rgba(214,99,74,.2);color:#f0a58f;}
+  .badge.nhap{background:rgba(95,174,116,.2);color:#a6dcb4;}
+
+  .status{font-family:var(--mono);font-size:12px;margin-top:8px;min-height:16px;}
+  .status.ok{color:var(--green);}
+  .status.err{color:var(--red);}
+  .status.wait{color:#a9c2c4;}
+
+  .notfound{color:var(--red);font-family:var(--mono);font-size:13px;}
+
+  .setup-note{font-size:12px;color:#a9c2c4;line-height:1.6;}
+  .setup-note code{background:var(--panel-2);padding:1px 6px;border-radius:5px;font-family:var(--mono);}
+
+  #stockList{display:flex;flex-direction:column;gap:8px;max-height:60vh;overflow:auto;}
+  .stock-row{display:flex;justify-content:space-between;align-items:center;font-family:var(--mono);font-size:12.5px;border-bottom:1px dashed var(--line);padding-bottom:8px;gap:10px;}
+  .stock-row .sname{color:var(--paper);flex:1;}
+  .stock-row .sbarcode{color:#6f8f92;font-size:11px;}
+  .stock-row .snum{font-weight:700;padding:2px 8px;border-radius:6px;background:var(--panel-2);}
+  .stock-row .snum.low{background:rgba(214,99,74,.25);color:#f0a58f;}
+  .list-empty{font-family:var(--mono);font-size:12.5px;color:#6f8f92;}
+  .summary{display:flex;gap:8px;margin-bottom:12px;}
+  .summary .box{flex:1;background:var(--panel-2);border:1px solid var(--line);border-radius:10px;padding:10px;text-align:center;}
+  .summary .box .n{font-family:var(--mono);font-size:18px;font-weight:700;}
+  .summary .box .l{font-size:10px;color:#a9c2c4;text-transform:uppercase;letter-spacing:.06em;margin-top:2px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <button class="backbtn hidden" id="btnBack" onclick="veTrangChu()">←</button>
+    <div class="titles">
+      <div class="brand">Điện Tử Thu Hiền</div>
+      <h1 id="pageTitle">Quản lý kho</h1>
+    </div>
+    <div class="tag" id="connStatus">chưa kết nối</div>
+  </header>
+
+  <!-- ================= TRANG CHỦ ================= -->
+  <div class="screen active" id="screen-home">
+    <div class="menu-grid">
+      <button class="menu-btn lookup" onclick="mo('lookup')">
+        <span class="ic">🔍</span>
+        <span class="t">Tra cứu sản phẩm</span>
+        <span class="d">Quét mã, xem tên / giá / tồn kho</span>
+      </button>
+      <button class="menu-btn xuat" onclick="mo('xuat')">
+        <span class="ic">📤</span>
+        <span class="t">Xuất hàng</span>
+        <span class="d">Ghi giao dịch bán / xuất kho</span>
+      </button>
+      <button class="menu-btn nhap" onclick="mo('nhap')">
+        <span class="ic">📥</span>
+        <span class="t">Nhập hàng</span>
+        <span class="d">Ghi giao dịch nhập kho</span>
+      </button>
+      <button class="menu-btn stock" onclick="mo('stock')">
+        <span class="ic">📦</span>
+        <span class="t">Số lượng tồn</span>
+        <span class="d">Xem toàn bộ tồn kho hiện tại</span>
+      </button>
+      <button class="menu-btn expense" onclick="mo('expense')">
+        <span class="ic">💸</span>
+        <span class="t">Chi phí phát sinh</span>
+        <span class="d">Ghi chi phí điện, nước, thuê...</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ================= TRA CỨU / XUẤT / NHẬP: dùng chung khu vực quét ================= -->
+  <div class="screen" id="screen-scan">
+    <div class="card">
+      <h2 id="scanCardTitle">Quét mã vạch</h2>
+      <div id="reader"></div>
+      <div class="scanbar">
+        <button class="btn-amber btn-block" id="btnStart" onclick="batDauQuet()">Bắt đầu quét</button>
+        <button class="btn-ghost" id="btnStop" onclick="dungQuet()" disabled>Dừng</button>
+      </div>
+      <button class="btn-ghost btn-block hidden" id="btnTorch" style="margin-top:8px;" onclick="toggleDenPin()">💡 Bật đèn</button>
+      <div class="field" style="margin-top:12px;">
+        <label id="manualLabel">Hoặc nhập mã vạch / tên sản phẩm</label>
+        <input type="text" id="manualBarcode" placeholder="Nhập rồi bấm Enter">
+      </div>
+      <div class="status wait" id="scanStatus">Chưa quét mã nào.</div>
+    </div>
+
+    <!-- KẾT QUẢ TRA CỨU -->
+    <div class="card hidden" id="lookupResultCard">
+      <h2>Thông tin sản phẩm</h2>
+      <div class="product">
+        <div class="name" id="lkName"></div>
+        <div class="meta">Giá bán: <b id="lkGiaBan"></b></div>
+        <div class="stock-pill" id="lkStockPill">Tồn kho: <b id="lkTon"></b></div>
+      </div>
+    </div>
+    <div class="card hidden" id="lookupNotFoundCard">
+      <div class="notfound">Không tìm thấy sản phẩm này trong danh sách.</div>
+    </div>
+
+    <!-- FORM XUẤT / NHẬP -->
+    <div class="card hidden" id="transForm">
+      <h2>Xác nhận giao dịch</h2>
+      <span class="badge" id="transBadge"></span>
+      <div class="product" style="margin-bottom:14px;">
+        <div class="name" id="tfName"></div>
+        <div class="stock-pill" id="tfStockPill">Tồn kho hiện tại: <b id="tfTon"></b></div>
+      </div>
+
+      <div class="row2">
+        <div class="field">
+          <label>Số lượng</label>
+          <input type="number" id="tfQty" min="1" value="1">
+        </div>
+        <div class="field">
+          <label>Đơn giá thực tế</label>
+          <input type="number" id="tfDonGia" min="0" step="1000">
+        </div>
+      </div>
+      <div class="row2">
+        <div class="field">
+          <label>Ngày giao dịch</label>
+          <input type="text" id="tfDate" readonly>
+        </div>
+        <div class="field">
+          <label>Loại giao dịch</label>
+          <input type="text" id="tfType" readonly>
+        </div>
+      </div>
+      <div class="field">
+        <label>Lý do giao dịch (nếu có)</label>
+        <input type="text" id="tfReason" placeholder="VD: khách mua tại quầy / nhập từ NCC...">
+      </div>
+
+      <button class="btn-block" id="tfConfirmBtn" onclick="xacNhanGiaoDich()">Xác nhận</button>
+      <div class="status" id="tfStatus"></div>
+    </div>
+  </div>
+
+  <!-- ================= TỒN KHO ================= -->
+  <div class="screen" id="screen-stock">
+    <div class="card">
+      <h2>Số lượng hàng tồn</h2>
+      <div class="summary">
+        <div class="box"><div class="n" id="sumTotal">–</div><div class="l">Mặt hàng</div></div>
+        <div class="box"><div class="n" id="sumLow">–</div><div class="l">Sắp hết / âm</div></div>
+      </div>
+      <div class="field">
+        <label>Tìm theo tên hoặc mã vạch</label>
+        <input type="text" id="stockSearch" placeholder="Gõ để lọc..." oninput="locDanhSachTon()">
+      </div>
+      <div id="stockList"><div class="list-empty">Đang tải...</div></div>
+      <button class="btn-ghost btn-block" style="margin-top:10px;" onclick="taiDanhSachTon()">Làm mới danh sách</button>
+    </div>
+  </div>
+
+  <!-- ================= CHI PHÍ PHÁT SINH ================= -->
+  <div class="screen" id="screen-expense">
+    <div class="card">
+      <h2>Ghi chi phí phát sinh</h2>
+
+      <div class="row2">
+        <div class="field">
+          <label>Ngày</label>
+          <input type="text" id="exDate" readonly>
+        </div>
+        <div class="field">
+          <label>Số tiền</label>
+          <input type="number" id="exAmount" min="0" step="1000" placeholder="0">
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Loại chi phí</label>
+        <input type="text" id="exType" list="exTypeList" placeholder="Chọn hoặc gõ loại chi phí...">
+        <datalist id="exTypeList">
+          <option value="Tiền điện">
+          <option value="Tiền nước">
+          <option value="Thuê mặt bằng">
+          <option value="Lương nhân viên">
+          <option value="Vận chuyển">
+          <option value="Sửa chữa / bảo trì">
+          <option value="Văn phòng phẩm">
+          <option value="Internet / điện thoại">
+          <option value="Khác">
+        </datalist>
+      </div>
+
+      <div class="field">
+        <label>Ghi chú</label>
+        <input type="text" id="exNote" placeholder="Chi tiết thêm (nếu có)">
+      </div>
+
+      <button class="btn-amber btn-block" onclick="ghiChiPhi()">Lưu chi phí</button>
+      <div class="status" id="exStatus"></div>
+    </div>
+
+    <div class="card">
+      <h2>Chi phí gần đây</h2>
+      <div id="expenseList"><div class="list-empty">Chưa có dữ liệu.</div></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ==== CẤU HÌNH ====
+let WEBAPP_URL = "https://script.google.com/macros/s/AKfycbw_csEaUwA_JBWpBCHhlAm0_QPMU34-LQYJCy0o2YV4yZ-93A2OEpDH8r4Z7uVYxVcu/exec";
+
+let html5QrCode;
+let mode = 'lookup'; // 'lookup' | 'xuat' | 'nhap'
+let currentProduct = null;
+let allStock = [];
+const LOW_STOCK_THRESHOLD = 5;
+
+function setConnStatus(){
+  const el = document.getElementById('connStatus');
+  if(WEBAPP_URL){ el.textContent = 'đã kết nối'; el.style.color = 'var(--green)'; }
+  else { el.textContent = 'chưa kết nối'; el.style.color = 'var(--red)'; }
+}
+
+// ---------- ĐIỀU HƯỚNG MÀN HÌNH ----------
+function chuyenManHinh(id){
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.getElementById('btnBack').classList.toggle('hidden', id === 'screen-home');
+}
+
+function veTrangChu(){
+  dungQuet();
+  chuyenManHinh('screen-home');
+  document.getElementById('pageTitle').textContent = 'Quản lý kho';
+}
+
+function mo(m){
+  if(!WEBAPP_URL){ alert('Hãy kết nối Google Sheet trước.'); return; }
+  mode = m;
+  resetKetQua();
+
+  if(m === 'stock'){
+    chuyenManHinh('screen-stock');
+    document.getElementById('pageTitle').textContent = 'Số lượng hàng tồn';
+    taiDanhSachTon();
+    return;
+  }
+
+  if(m === 'expense'){
+    chuyenManHinh('screen-expense');
+    document.getElementById('pageTitle').textContent = 'Chi phí phát sinh';
+    document.getElementById('exDate').value = new Date().toLocaleDateString('vi-VN');
+    document.getElementById('exAmount').value = '';
+    document.getElementById('exType').value = '';
+    document.getElementById('exNote').value = '';
+    document.getElementById('exStatus').textContent = '';
+    taiChiPhiGanDay();
+    return;
+  }
+
+  chuyenManHinh('screen-scan');
+  const titles = { lookup:'Tra cứu sản phẩm', xuat:'Xuất hàng', nhap:'Nhập hàng' };
+  document.getElementById('pageTitle').textContent = titles[m];
+
+  const scanTitles = { lookup:'Quét mã để tra cứu', xuat:'Quét mã để xuất hàng', nhap:'Quét mã để nhập hàng' };
+  document.getElementById('scanCardTitle').textContent = scanTitles[m];
+
+  const manualLabels = { lookup:'Hoặc nhập mã vạch / tên sản phẩm', xuat:'Hoặc nhập mã vạch cần xuất', nhap:'Hoặc nhập mã vạch cần nhập' };
+  document.getElementById('manualLabel').textContent = manualLabels[m];
+}
+
+function resetKetQua(){
+  currentProduct = null;
+  document.getElementById('lookupResultCard').classList.add('hidden');
+  document.getElementById('lookupNotFoundCard').classList.add('hidden');
+  document.getElementById('transForm').classList.add('hidden');
+  document.getElementById('scanStatus').textContent = 'Chưa quét mã nào.';
+  document.getElementById('scanStatus').className = 'status wait';
+  document.getElementById('manualBarcode').value = '';
+}
+
+// ---------- QUÉT MÃ ----------
+async function batDauQuet(){
+  if(!WEBAPP_URL){ alert('Hãy kết nối Google Sheet trước.'); return; }
+  document.getElementById('btnStart').disabled = true;
+  document.getElementById('btnStop').disabled = false;
+
+  html5QrCode = new Html5Qrcode("reader", {
+    // Hỗ trợ cả QR code lẫn hầu hết các loại mã vạch 1D phổ biến
+    formatsToSupport: [
+      Html5QrcodeSupportedFormats.QR_CODE,
+      Html5QrcodeSupportedFormats.EAN_13, Html5QrcodeSupportedFormats.EAN_8,
+      Html5QrcodeSupportedFormats.UPC_A, Html5QrcodeSupportedFormats.UPC_E,
+      Html5QrcodeSupportedFormats.CODE_128, Html5QrcodeSupportedFormats.CODE_39,
+      Html5QrcodeSupportedFormats.CODE_93, Html5QrcodeSupportedFormats.CODABAR,
+      Html5QrcodeSupportedFormats.ITF, Html5QrcodeSupportedFormats.DATA_MATRIX
+    ],
+    // Dùng BarcodeDetector gốc của trình duyệt nếu máy hỗ trợ — nhanh và chính xác hơn nhiều
+    experimentalFeatures: { useBarCodeDetectorIfSupported: true },
+    verbose: false
+  });
+
+  try{
+    await html5QrCode.start(
+      {
+        facingMode: "environment"
+      },
+      {
+        fps: 15,
+        // Khung quét hình vuông, chiếm ~75% khung hình để bắt được mã dù chụp hơi lệch/nghiêng
+        qrbox: (viewfinderW, viewfinderH) => {
+          const size = Math.floor(Math.min(viewfinderW, viewfinderH) * 0.75);
+          return { width: size, height: size };
+        },
+        aspectRatio: 1.0,
+        disableFlip: false,
+        // Yêu cầu camera độ phân giải cao hơn để đọc rõ mã vạch nhỏ / mờ
+        videoConstraints: {
+          facingMode: "environment",
+          width: { ideal: 1920 },
+          height: { ideal: 1080 },
+          advanced: [{ focusMode: "continuous" }]
+        }
+      },
+      (decodedText) => { xuLyMa(decodedText); dungQuet(); },
+      () => {}
+    );
+    capNhatNutDenPin();
+  }catch(err){
+    document.getElementById('scanStatus').textContent = 'Không mở được camera: ' + err;
+    document.getElementById('scanStatus').className = 'status err';
+    document.getElementById('btnStart').disabled = false;
+    document.getElementById('btnStop').disabled = true;
+  }
+}
+
+async function dungQuet(){
+  if(html5QrCode){
+    try{ await html5QrCode.stop(); await html5QrCode.clear(); }catch(e){}
+  }
+  document.getElementById('btnStart').disabled = false;
+  document.getElementById('btnStop').disabled = true;
+  document.getElementById('btnTorch').classList.add('hidden');
+}
+
+// Bật/tắt đèn flash nếu thiết bị hỗ trợ — giúp quét trong điều kiện thiếu sáng
+let denPinBat = false;
+async function capNhatNutDenPin(){
+  const btn = document.getElementById('btnTorch');
+  try{
+    const capabilities = html5QrCode.getRunningTrackCapabilities();
+    if(capabilities && capabilities.torch){
+      btn.classList.remove('hidden');
+      denPinBat = false;
+    } else {
+      btn.classList.add('hidden');
+    }
+  }catch(e){ btn.classList.add('hidden'); }
+}
+async function toggleDenPin(){
+  try{
+    denPinBat = !denPinBat;
+    await html5QrCode.applyVideoConstraints({ advanced: [{ torch: denPinBat }] });
+    document.getElementById('btnTorch').textContent = denPinBat ? '💡 Tắt đèn' : '💡 Bật đèn';
+  }catch(e){ /* thiết bị không hỗ trợ, bỏ qua */ }
+}
+
+document.getElementById('manualBarcode').addEventListener('keydown', (e) => {
+  if(e.key === 'Enter'){
+    const v = e.target.value.trim();
+    if(v) xuLyMa(v);
+    e.target.value = '';
+  }
+});
+
+// ---------- TRA CỨU / KHỞI TẠO GIAO DỊCH ----------
+async function xuLyMa(barcode){
+  const st = document.getElementById('scanStatus');
+  st.textContent = 'Đang tra cứu: ' + barcode + ' ...';
+  st.className = 'status wait';
+  if(!WEBAPP_URL){ st.textContent = 'Chưa kết nối Google Sheet.'; st.className='status err'; return; }
+
+  try{
+    const res = await fetch(`${WEBAPP_URL}?action=lookup&barcode=${encodeURIComponent(barcode)}`);
+    const data = await res.json();
+
+    if(data.found){
+      currentProduct = data;
+      st.textContent = 'Tìm thấy sản phẩm.'; st.className = 'status ok';
+      if(mode === 'lookup') hienThiTraCuu(data);
+      else hienThiFormGiaoDich(data);
+    } else {
+      currentProduct = null;
+      st.textContent = 'Không tìm thấy mã: ' + barcode; st.className = 'status err';
+      document.getElementById('lookupResultCard').classList.add('hidden');
+      document.getElementById('lookupNotFoundCard').classList.remove('hidden');
+      document.getElementById('transForm').classList.add('hidden');
+    }
+  }catch(err){
+    st.textContent = 'Lỗi kết nối tới Google Sheet: ' + err; st.className = 'status err';
+  }
+}
+
+function hienThiTraCuu(data){
+  document.getElementById('lookupNotFoundCard').classList.add('hidden');
+  document.getElementById('lookupResultCard').classList.remove('hidden');
+  document.getElementById('lkName').textContent = data.name || '(không tên)';
+  document.getElementById('lkGiaBan').textContent = formatVND(data.giaBan);
+  document.getElementById('lkTon').textContent = data.tonKho;
+  const pill = document.getElementById('lkStockPill');
+  pill.classList.toggle('low', Number(data.tonKho) <= LOW_STOCK_THRESHOLD);
+}
+
+function hienThiFormGiaoDich(data){
+  document.getElementById('lookupResultCard').classList.add('hidden');
+  document.getElementById('lookupNotFoundCard').classList.add('hidden');
+  document.getElementById('transForm').classList.remove('hidden');
+
+  document.getElementById('tfName').textContent = data.name || '(không tên)';
+  document.getElementById('tfTon').textContent = data.tonKho;
+  document.getElementById('tfStockPill').classList.toggle('low', Number(data.tonKho) <= LOW_STOCK_THRESHOLD);
+  document.getElementById('tfQty').value = 1;
+  document.getElementById('tfReason').value = '';
+  document.getElementById('tfDate').value = new Date().toLocaleDateString('vi-VN');
+  document.getElementById('tfStatus').textContent = '';
+
+  // Gợi ý đơn giá thực tế: giá bán nếu xuất, giá gốc nếu nhập — người dùng vẫn sửa được
+  document.getElementById('tfDonGia').value = (mode === 'xuat') ? (data.giaBan || 0) : (data.giaGoc || 0);
+
+  const badge = document.getElementById('transBadge');
+  const typeInput = document.getElementById('tfType');
+  const btn = document.getElementById('tfConfirmBtn');
+
+  if(mode === 'xuat'){
+    badge.textContent = 'XUẤT HÀNG'; badge.className = 'badge xuat';
+    typeInput.value = 'Xuất hàng';
+    btn.textContent = 'Xác nhận xuất hàng';
+    btn.className = 'btn-block btn-danger';
+  } else {
+    badge.textContent = 'NHẬP HÀNG'; badge.className = 'badge nhap';
+    typeInput.value = 'Nhập hàng';
+    btn.textContent = 'Xác nhận nhập hàng';
+    btn.className = 'btn-block btn-green';
+  }
+}
+
+async function xacNhanGiaoDich(){
+  if(!currentProduct) return;
+  const qty = Number(document.getElementById('tfQty').value) || 0;
+  const donGia = document.getElementById('tfDonGia').value;
+  const reason = document.getElementById('tfReason').value.trim();
+  const st = document.getElementById('tfStatus');
+
+  if(qty <= 0){ st.textContent = 'Số lượng phải lớn hơn 0'; st.className = 'status err'; return; }
+
+  st.textContent = 'Đang ghi vào Sheet...'; st.className = 'status wait';
+
+  try{
+    const url = `${WEBAPP_URL}?action=update&barcode=${encodeURIComponent(currentProduct.barcode)}&qty=${qty}&type=${mode}&reason=${encodeURIComponent(reason)}&donGia=${encodeURIComponent(donGia)}`;
+    const res = await fetch(url);
+    const data = await res.json();
+
+    if(data.success){
+      st.textContent = `Đã ghi vào Sổ giao dịch. Tồn kho mới: ${data.newStock}`; st.className = 'status ok';
+      document.getElementById('tfTon').textContent = data.newStock;
+      currentProduct.tonKho = data.newStock;
+    } else {
+      st.textContent = 'Lỗi: ' + data.error; st.className = 'status err';
+    }
+  }catch(err){
+    st.textContent = 'Lỗi kết nối: ' + err; st.className = 'status err';
+  }
+}
+
+// ---------- TỒN KHO ----------
+async function taiDanhSachTon(){
+  const listEl = document.getElementById('stockList');
+  listEl.innerHTML = '<div class="list-empty">Đang tải...</div>';
+  if(!WEBAPP_URL){ listEl.innerHTML = '<div class="list-empty">Chưa kết nối Google Sheet.</div>'; return; }
+
+  try{
+    const res = await fetch(`${WEBAPP_URL}?action=list`);
+    const data = await res.json();
+    allStock = data.items || [];
+    document.getElementById('sumTotal').textContent = allStock.length;
+    document.getElementById('sumLow').textContent = allStock.filter(p => Number(p.tonKho) <= LOW_STOCK_THRESHOLD).length;
+    locDanhSachTon();
+  }catch(err){
+    listEl.innerHTML = '<div class="list-empty">Lỗi tải dữ liệu: ' + err + '</div>';
+  }
+}
+
+function locDanhSachTon(){
+  const q = document.getElementById('stockSearch').value.trim().toLowerCase();
+  const listEl = document.getElementById('stockList');
+  const filtered = allStock.filter(p =>
+    !q || String(p.name).toLowerCase().includes(q) || String(p.barcode).toLowerCase().includes(q)
+  );
+
+  if(filtered.length === 0){ listEl.innerHTML = '<div class="list-empty">Không có sản phẩm nào khớp.</div>'; return; }
+
+  listEl.innerHTML = filtered.map(p => `
+    <div class="stock-row">
+      <div>
+        <div class="sname">${p.name || '(không tên)'}</div>
+        <div class="sbarcode">${p.barcode || ''}</div>
+      </div>
+      <div class="snum ${Number(p.tonKho) <= LOW_STOCK_THRESHOLD ? 'low' : ''}">${p.tonKho}</div>
+    </div>
+  `).join('');
+}
+
+// ---------- CHI PHÍ PHÁT SINH ----------
+async function ghiChiPhi(){
+  const st = document.getElementById('exStatus');
+  const amount = Number(document.getElementById('exAmount').value) || 0;
+  const type = document.getElementById('exType').value.trim();
+  const note = document.getElementById('exNote').value.trim();
+
+  if(!type){ st.textContent = 'Vui lòng chọn hoặc nhập loại chi phí'; st.className = 'status err'; return; }
+  if(amount <= 0){ st.textContent = 'Số tiền phải lớn hơn 0'; st.className = 'status err'; return; }
+
+  st.textContent = 'Đang lưu...'; st.className = 'status wait';
+
+  try{
+    const url = `${WEBAPP_URL}?action=expense&type=${encodeURIComponent(type)}&amount=${amount}&note=${encodeURIComponent(note)}`;
+    const res = await fetch(url);
+    const data = await res.json();
+
+    if(data.success){
+      st.textContent = 'Đã lưu vào Sổ Chi Phí.'; st.className = 'status ok';
+      document.getElementById('exAmount').value = '';
+      document.getElementById('exType').value = '';
+      document.getElementById('exNote').value = '';
+      taiChiPhiGanDay();
+    } else {
+      st.textContent = 'Lỗi: ' + data.error; st.className = 'status err';
+    }
+  }catch(err){
+    st.textContent = 'Lỗi kết nối: ' + err; st.className = 'status err';
+  }
+}
+
+async function taiChiPhiGanDay(){
+  const listEl = document.getElementById('expenseList');
+  listEl.innerHTML = '<div class="list-empty">Đang tải...</div>';
+  if(!WEBAPP_URL){ listEl.innerHTML = '<div class="list-empty">Chưa kết nối Google Sheet.</div>'; return; }
+
+  try{
+    const res = await fetch(`${WEBAPP_URL}?action=expenseHistory`);
+    const data = await res.json();
+    const items = data.items || [];
+
+    if(items.length === 0){ listEl.innerHTML = '<div class="list-empty">Chưa có dữ liệu.</div>'; return; }
+
+    listEl.innerHTML = items.map(it => `
+      <div class="stock-row">
+        <div>
+          <div class="sname">${it.loai || ''}</div>
+          <div class="sbarcode">${it.ngay || ''}${it.ghiChu ? ' · ' + it.ghiChu : ''}</div>
+        </div>
+        <div class="snum">${formatVND(it.soTien)}</div>
+      </div>
+    `).join('');
+  }catch(err){
+    listEl.innerHTML = '<div class="list-empty">Lỗi tải dữ liệu: ' + err + '</div>';
+  }
+}
+
+function formatVND(n){
+  if(n === '' || n === undefined || n === null) return '—';
+  return Number(n).toLocaleString('vi-VN') + ' đ';
+}
+
+setConnStatus();
+</script>
+</body>
+</html>
